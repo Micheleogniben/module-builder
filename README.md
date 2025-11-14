@@ -1,133 +1,104 @@
-# Static Web Forms Project
+# Module Builder
 
-A complete static web forms system built with Blazor WASM, optimized for GitHub Pages deployment. This project allows non-technical users to create and manage dynamic forms with document generation capabilities.
+**Module Builder** is a static web system for creating and managing dynamic form modules. It allows non-technical users to create custom forms simply by creating JSON files and Markdown templates, without needing to write code.
 
-## Features
+## 🚀 Key Features
 
-- **Dynamic Form Generation**: Forms are generated from JSON configuration files
-- **Document Templates**: Markdown templates with placeholder replacement
-- **Multiple Field Types**: Text, email, textarea, number, date, and choice fields
-- **Form Validation**: Client-side validation for required fields and email format
-- **Document Preview**: Real-time preview of generated documents
-- **Download Support**: Download completed documents as Markdown files
-- **Responsive Design**: Modern, mobile-friendly UI
-- **Extensible Architecture**: Ready for backend integration
+- ✅ **Dynamic Forms**: Automatically generates forms from JSON files
+- ✅ **Customizable Templates**: Use Markdown templates with placeholders to generate documents
+- ✅ **Easy to Use**: Intuitive interface for non-technical users
+- ✅ **Multiple Field Types**: Text, email, numbers, dates, multiple choice, and more
+- ✅ **Automatic Validation**: Client-side validation for required fields and email format
+- ✅ **Document Preview**: Real-time preview of generated documents
+- ✅ **Download Documents**: Download completed documents as Markdown files
+- ✅ **Responsive Design**: Works perfectly on desktop and mobile
+- ✅ **Backend Ready**: Extensible architecture for future API integration
 
-## Project Structure
-
-```
-/modules          - Markdown document templates with {{placeholders}}
-/json             - JSON configuration files for each module
-/wwwroot          - Blazor WASM static files (HTML, CSS, JS)
-/backend          - Backend API documentation (for future implementation)
-/docs             - User guide for non-technical users
-```
-
-## Getting Started
-
-### Prerequisites
+## 📋 Requirements
 
 - .NET 8 SDK
-- A code editor (Visual Studio, VS Code, or Rider)
+- A modern browser
+- (Optional) A web server for deployment (e.g., GitHub Pages)
 
-### Building the Project
+## 🎯 Quick Start
 
-1. Clone or download this repository
-2. Open a terminal in the project directory
-3. Run:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/module-builder.git
+   cd module-builder
+   ```
+
+2. **Restore dependencies**
    ```bash
    dotnet restore
+   ```
+
+3. **Build the project**
+   ```bash
    dotnet build
    ```
 
-### Running Locally
+4. **Run the application**
+   ```bash
+   dotnet run
+   ```
 
-```bash
-dotnet run
+5. **Open your browser** to the URL shown in the terminal (usually `https://localhost:5001`)
+
+## 📚 Documentation
+
+- **[User Guide](docs/USER_GUIDE.md)** - Complete guide for creating and modifying modules (for non-technical users)
+- **[Technical Setup](SETUP.md)** - Technical information for developers
+- **[Next Steps](NEXT_STEPS.md)** - Future steps and improvements
+- **[Backend API](backend/README.md)** - API documentation for backend integration
+
+## 🎨 How It Works
+
+1. **Create a Module**: Add a JSON file in `/json` and a Markdown template in `/modules`
+2. **Configure Questions**: Define form fields in the JSON file
+3. **Create the Template**: Use `{{fieldName}}` as placeholders in the Markdown template
+4. **Users Fill Forms**: The form is automatically generated from the JSON
+5. **Document Generated**: Answers replace placeholders in the template
+
+## 📁 Project Structure
+
+```
+module-builder/
+├── modules/          # Markdown templates with {{placeholders}}
+├── json/             # JSON module configurations
+├── wwwroot/          # Static files (HTML, CSS, JS)
+├── backend/          # Backend API documentation
+├── docs/             # User guides
+└── Components/       # Blazor components
 ```
 
-The application will be available at `https://localhost:5001` or `http://localhost:5000`
+## 🛠️ Technologies Used
 
-### Deploying to GitHub Pages
+- **Blazor WebAssembly** (.NET 8) - Frontend framework
+- **Markdig** - Markdown processing
+- **Custom CSS** - Modern and responsive design
 
-1. Build the project for release:
-   ```bash
-   dotnet publish -c Release
-   ```
+## 📝 Example
 
-2. The output will be in `bin/Release/net8.0/publish/wwwroot/`
-
-3. Copy the contents of `wwwroot` to your GitHub Pages repository
-
-4. Configure GitHub Pages to serve from the root directory
-
-5. Update the `base` tag in `index.html` if your site is in a subdirectory:
-   ```html
-   <base href="/your-repo-name/" />
-   ```
-
-## Creating Modules
-
-See the [User Guide](docs/USER_GUIDE.md) for detailed instructions on creating and modifying form modules.
-
-### Quick Start
-
-1. Create a JSON file in `/json` (e.g., `myForm.json`)
-2. Create a Markdown template in `/modules` (e.g., `myForm.md`)
-3. Use `{{fieldName}}` placeholders in the template
-4. The form will automatically appear in the module selector
-
-## Example Module
-
-The project includes an example module (`exampleModule`) that demonstrates all field types and features. Check:
+The project includes an example module (`exampleModule`) that demonstrates all features. Check:
 - `/json/exampleModule.json` - Form configuration
 - `/modules/exampleModule.md` - Document template
 
-## Backend Integration
+## 🤝 Contributing
 
-The frontend is designed to work with a backend service running on Raspberry Pi. See [Backend Documentation](backend/README.md) for API contract and implementation examples.
+Contributions are welcome! For more information, see the [User Guide](docs/USER_GUIDE.md) to create new modules.
 
-The backend should:
-- Receive form submissions via POST `/api/submit`
-- Generate documents (especially for Word format)
-- Send emails with attachments via SMTP
+## 📄 License
 
-## Technology Stack
+This project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-- **Frontend**: Blazor WebAssembly (.NET 8)
-- **Styling**: Custom CSS with modern design
-- **Markdown Processing**: Markdig library
-- **Deployment**: GitHub Pages (static hosting)
+## 🆘 Support
 
-## Development
+For questions or issues:
+- Check the [User Guide](docs/USER_GUIDE.md) for creating modules
+- See [Technical Setup](SETUP.md) for technical issues
+- Open an issue on GitHub for bugs or feature requests
 
-### Adding New Field Types
+---
 
-1. Add the question type to `Question.QuestionType` in the JSON schema
-2. Add a case in `FormField.razor` to handle the new type
-3. Update the user guide with the new field type
-
-### Extending Functionality
-
-The codebase is structured for easy extension:
-- **Services**: Add new services in `/Services`
-- **Components**: Add reusable components in `/Components`
-- **Models**: Add data models in `/Models`
-
-## File Organization
-
-- `/Models` - Data models (ModuleConfig, Question, FormSubmission)
-- `/Services` - Business logic (ModuleService, DocumentService, FormSubmissionService)
-- `/Components` - Reusable Blazor components
-- `/Pages` - Page components (Index, Form)
-- `/Shared` - Shared layout components
-
-## License
-
-This project is provided as-is for use in your organization.
-
-## Support
-
-For questions about creating modules, see the [User Guide](docs/USER_GUIDE.md).
-
-For technical issues or feature requests, contact your development team.
+**Built with ❤️ using Blazor WebAssembly**
