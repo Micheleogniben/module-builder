@@ -1,0 +1,292 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject IAdminService AdminService
+@inject IJSRuntime JSRuntime
+@inject ILogger<ModuleUpload> Logger
+@inject IErrorService ErrorService
+
+<div class="module-upload">
+    <h2>Carica/Modifica Modulo</h2>
+    
+    <EditForm Model="@uploadModel" OnValidSubmit="@HandleSubmit">
+        <DataAnnotationsValidator />
+        
+        <div class="form-group">
+            <label for="moduleId">Module ID *</label>
+            <InputText id="moduleId" @bind-Value="uploadModel.ModuleId" class="form-control" placeholder="es. exampleModule" />
+            <ValidationMessage For="@(() => uploadModel.ModuleId)" />
+            <small class="form-hint">Identificatore univoco del modulo (solo lettere, numeri e underscore)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="jsonContent">Contenuto JSON *</label>
+            <InputTextArea id="jsonContent" @bind-Value="uploadModel.JsonContent" class="form-control json-editor" rows="20" />
+            <ValidationMessage For="@(() => uploadModel.JsonContent)" />
+            <div class="editor-actions">
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="FormatJson">
+                    Formatta JSON
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="LoadExample">
+                    Carica Esempio
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="ValidateJson">
+                    Valida JSON
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(validationMessage))
+        {
+            <div class="@(isValid ? "validation-success" : "validation-error")">
+                @validationMessage
+            </div>
+        }
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" disabled="@isUploading">
+                @if (isUploading)
+                {
+                    <text>Caricamento in corso...</text>
+                }
+                else
+                {
+                    <text>Carica Modulo</text>
+                }
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="OnCancel" disabled="@isUploading">
+                Annulla
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+<style>
+    .module-upload {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .module-upload h2 {
+        margin-top: 0;
+        margin-bottom: 25px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: 'Courier New', monospace;
+    }
+
+    .json-editor {
+        min-height: 400px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .form-hint {
+        display: block;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .editor-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .validation-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .validation-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback<(string ModuleId, string JsonContent)> OnUpload { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private UploadModel uploadModel = new();
+    private bool isUploading = false;
+    private string? validationMessage;
+    private bool isValid = false;
+
+    private async Task HandleSubmit()
+    {
+        if (isUploading) return;
+
+        isUploading = true;
+        validationMessage = null;
+
+        try
+        {
+            // Validate before upload
+            var validation = await AdminService.ValidateModuleJsonAsync(uploadModel.JsonContent);
+            if (!validation.IsValid)
+            {
+                validationMessage = "Errori di validazione:\n" + string.Join("\n", validation.Errors);
+                isValid = false;
+                isUploading = false;
+                return;
+            }
+
+            if (validation.Warnings.Count > 0)
+            {
+                validationMessage = "Avvisi:\n" + string.Join("\n", validation.Warnings);
+                isValid = true;
+            }
+
+            await OnUpload.InvokeAsync((uploadModel.ModuleId, uploadModel.JsonContent));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in upload form");
+            ErrorService.ShowError("Errore durante la validazione", "Errore");
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void FormatJson()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Deserialize<object>(uploadModel.JsonContent);
+            uploadModel.JsonContent = System.Text.Json.JsonSerializer.Serialize(json, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+            validationMessage = "JSON formattato correttamente";
+            isValid = true;
+        }
+        catch (Exception ex)
+        {
+            validationMessage = $"Errore nella formattazione: {ex.Message}";
+            isValid = false;
+        }
+    }
+
+    private void LoadExample()
+    {
+        uploadModel.JsonContent = @"{
+  ""moduleId"": ""exampleModule"",
+  ""title"": ""Example Module"",
+  ""questions"": [
+    {
+      ""fieldName"": ""firstName"",
+      ""questionType"": ""text"",
+      ""questionText"": ""Enter your first name"",
+      ""required"": true,
+      ""placeholder"": ""John""
+    },
+    {
+      ""fieldName"": ""lastName"",
+      ""questionType"": ""text"",
+      ""questionText"": ""Enter your last name"",
+      ""required"": true,
+      ""placeholder"": ""Doe""
+    },
+    {
+      ""fieldName"": ""email"",
+      ""questionType"": ""email"",
+      ""questionText"": ""Enter your email address"",
+      ""required"": true,
+      ""placeholder"": ""john.doe@example.com""
+    }
+  ]
+}";
+        FormatJson();
+    }
+
+    private async Task ValidateJson()
+    {
+        try
+        {
+            var validation = await AdminService.ValidateModuleJsonAsync(uploadModel.JsonContent);
+            if (validation.IsValid)
+            {
+                validationMessage = "JSON valido!";
+                if (validation.Warnings.Count > 0)
+                {
+                    validationMessage += "\nAvvisi:\n" + string.Join("\n", validation.Warnings);
+                }
+                isValid = true;
+            }
+            else
+            {
+                validationMessage = "Errori di validazione:\n" + string.Join("\n", validation.Errors);
+                if (validation.Warnings.Count > 0)
+                {
+                    validationMessage += "\n\nAvvisi:\n" + string.Join("\n", validation.Warnings);
+                }
+                isValid = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            validationMessage = $"Errore durante la validazione: {ex.Message}";
+            isValid = false;
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private class UploadModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Module ID è obbligatorio")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9_]+$", ErrorMessage = "Module ID può contenere solo lettere, numeri e underscore")]
+        public string ModuleId { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Contenuto JSON è obbligatorio")]
+        public string JsonContent { get; set; } = string.Empty;
+    }
+}
+

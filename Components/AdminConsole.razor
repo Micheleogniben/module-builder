@@ -1,0 +1,247 @@
+@inject IAuthService AuthService
+@inject IAdminService AdminService
+@inject ILogger<AdminConsole> Logger
+@inject IErrorService ErrorService
+@inject IJSRuntime JSRuntime
+
+<div class="admin-console">
+    <div class="admin-header">
+        <div class="user-info">
+            <span>Ciao, <strong>@AuthService.CurrentUser?.Username</strong></span>
+            <button class="btn btn-secondary btn-sm" @onclick="HandleLogout">Logout</button>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <button class="tab @(activeTab == "modules" ? "active" : "")" @onclick="ShowModulesTab">
+            Moduli
+        </button>
+        <button class="tab @(activeTab == "upload" ? "active" : "")" @onclick="ShowUploadTab">
+            Carica Modulo
+        </button>
+    </div>
+
+    @if (activeTab == "modules")
+    {
+        <ModulesList 
+            Modules="@modules" 
+            Loading="@loadingModules"
+            OnRefresh="LoadModules"
+            OnEdit="HandleEditModule"
+            OnDelete="HandleDeleteModule"
+            OnDownload="HandleDownloadModule" />
+    }
+    else if (activeTab == "upload")
+    {
+        <ModuleUpload 
+            OnUpload="HandleUploadModule"
+            OnCancel="CancelUpload" />
+    }
+</div>
+
+<style>
+    .admin-console {
+        width: 100%;
+    }
+
+    .admin-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .user-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .admin-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #eee;
+        overflow-x: auto;
+    }
+
+    .tab {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-size: 15px;
+        color: #666;
+        transition: all 0.3s;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .tab:hover {
+        color: #007bff;
+    }
+
+    .tab.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 768px) {
+        .admin-header {
+            margin-bottom: 15px;
+        }
+
+        .user-info {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .admin-tabs {
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback OnLogout { get; set; }
+
+    private List<ModuleInfo> modules = new();
+    private bool loadingModules = false;
+    private string activeTab = "modules";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadModules();
+    }
+
+    private async Task LoadModules()
+    {
+        loadingModules = true;
+        try
+        {
+            modules = await AdminService.GetModulesAsync();
+            Logger.LogInformation("Loaded {Count} modules", modules.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading modules");
+            ErrorService.ShowError("Errore nel caricamento dei moduli", "Errore");
+        }
+        finally
+        {
+            loadingModules = false;
+        }
+    }
+
+    private void HandleEditModule(string moduleId)
+    {
+        activeTab = "upload";
+    }
+
+    private void CancelUpload()
+    {
+        activeTab = "modules";
+    }
+
+    private void ShowModulesTab()
+    {
+        activeTab = "modules";
+    }
+
+    private void ShowUploadTab()
+    {
+        activeTab = "upload";
+    }
+
+    private async Task HandleDeleteModule(string moduleId)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Sei sicuro di voler eliminare il modulo '{moduleId}'?");
+        
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await AdminService.DeleteModuleAsync(moduleId);
+            if (success)
+            {
+                ErrorService.ShowSuccess($"Modulo '{moduleId}' eliminato con successo", "Successo");
+                await LoadModules();
+            }
+            else
+            {
+                ErrorService.ShowError($"Errore nell'eliminazione del modulo '{moduleId}'", "Errore");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting module {ModuleId}", moduleId);
+            ErrorService.ShowError("Errore durante l'eliminazione", "Errore");
+        }
+    }
+
+    private async Task HandleDownloadModule(string moduleId)
+    {
+        try
+        {
+            var json = await AdminService.GetModuleJsonAsync(moduleId);
+            if (!string.IsNullOrEmpty(json))
+            {
+                var fileName = $"{moduleId}.json";
+                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                var base64 = Convert.ToBase64String(bytes);
+                var dataUrl = $"data:application/json;base64,{base64}";
+                
+                await JSRuntime.InvokeVoidAsync("downloadFile", fileName, dataUrl);
+                ErrorService.ShowSuccess($"Modulo '{moduleId}' scaricato", "Successo");
+            }
+            else
+            {
+                ErrorService.ShowError($"Impossibile scaricare il modulo '{moduleId}'", "Errore");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading module {ModuleId}", moduleId);
+            ErrorService.ShowError("Errore durante il download", "Errore");
+        }
+    }
+
+    private async Task HandleUploadModule((string ModuleId, string JsonContent) data)
+    {
+        try
+        {
+            var success = await AdminService.UploadModuleAsync(data.ModuleId, data.JsonContent);
+            if (success)
+            {
+                ErrorService.ShowSuccess($"Modulo '{data.ModuleId}' caricato con successo", "Successo");
+                activeTab = "modules";
+                await LoadModules();
+            }
+            else
+            {
+                ErrorService.ShowError($"Errore nel caricamento del modulo '{data.ModuleId}'", "Errore");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading module {ModuleId}", data.ModuleId);
+            ErrorService.ShowError("Errore durante il caricamento", "Errore");
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        await OnLogout.InvokeAsync();
+    }
+}
+

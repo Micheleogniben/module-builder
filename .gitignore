@@ -172,4 +172,12 @@ _ReSharper*/
 # Windows shortcuts
 *.lnk
 
+# Configuration files (may contain sensitive data)
+wwwroot/appsettings.json
+wwwroot/appsettings.*.json
+!wwwroot/appsettings.example.json
+
+# API Configuration (injected at build time, contains sensitive URL)
+wwwroot/index.config.js
+
 *.md

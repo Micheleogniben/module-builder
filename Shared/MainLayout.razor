@@ -1,12 +1,18 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject IErrorService ErrorService
+@inject IAuthService AuthService
 
 <div class="page">
     <div class="header">
         <div class="header-content">
             <h1>Static Web Forms</h1>
-            <NavMenu />
+            <div class="header-right">
+                <NavMenu />
+                <button class="admin-lock-btn" @onclick="OpenAdminModal" title="Console Admin" aria-label="Console Admin">
+                    🔒
+                </button>
+            </div>
         </div>
     </div>
 
@@ -16,8 +22,16 @@
 </div>
 
 <MessageModal />
+<AdminModal @bind-isOpen="adminModalOpen" />
 
 @code {
+    private bool adminModalOpen = false;
+
+    private void OpenAdminModal()
+    {
+        adminModalOpen = true;
+    }
+
     public void Dispose()
     {
         // Cleanup if needed

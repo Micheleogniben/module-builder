@@ -1,0 +1,144 @@
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ILogger<LoginForm> Logger
+@inject IErrorService ErrorService
+
+<EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+    <DataAnnotationsValidator />
+    
+    <div class="login-form">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <InputText id="username" @bind-Value="loginModel.Username" class="form-control" placeholder="Inserisci username" />
+            <ValidationMessage For="@(() => loginModel.Username)" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="Inserisci password" />
+            <ValidationMessage For="@(() => loginModel.Password)" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="error-message">
+                <p>@errorMessage</p>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <text>Accesso in corso...</text>
+            }
+            else
+            {
+                <text>Accedi</text>
+            }
+        </button>
+    </div>
+</EditForm>
+
+<style>
+    .login-form {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .btn-block {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .error-message {
+        background-color: #fee;
+        border: 1px solid #fcc;
+        color: #c33;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .login-form {
+            max-width: 100%;
+        }
+
+        .form-control {
+            font-size: 16px; /* Previene zoom su iOS */
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback OnLoginSuccess { get; set; }
+
+    private LoginRequest loginModel = new();
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        if (isLoading) return;
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            Logger.LogInformation("Login attempt for user: {Username}", loginModel.Username);
+
+            var response = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
+
+            if (response.Success)
+            {
+                Logger.LogInformation("Login successful for user: {Username}", loginModel.Username);
+                await OnLoginSuccess.InvokeAsync();
+            }
+            else
+            {
+                errorMessage = response.ErrorMessage ?? "Credenziali non valide";
+                ErrorService.ShowError(errorMessage, "Errore di accesso");
+                Logger.LogWarning("Login failed for user: {Username}", loginModel.Username);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Si è verificato un errore durante l'accesso";
+            ErrorService.ShowError(errorMessage, "Errore");
+            Logger.LogError(ex, "Error during login");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+
