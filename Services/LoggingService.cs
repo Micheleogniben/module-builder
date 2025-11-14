@@ -5,19 +5,24 @@ using System.Text.Json;
 namespace StaticWebForms.Services;
 
 /// <summary>
-/// Implementation of ILoggingService that stores logs in browser localStorage
+/// Implementation of ILoggingService that stores logs in browser localStorage and reports errors to server
 /// </summary>
 public class LoggingService : ILoggingService
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<LoggingService> _logger;
+    private readonly IErrorReportingService? _errorReportingService;
     private const string LogStorageKey = "app_logs";
     private const int MaxLogEntries = 1000; // Maximum number of log entries to keep
 
-    public LoggingService(IJSRuntime jsRuntime, ILogger<LoggingService> logger)
+    public LoggingService(
+        IJSRuntime jsRuntime, 
+        ILogger<LoggingService> logger,
+        IErrorReportingService? errorReportingService = null)
     {
         _jsRuntime = jsRuntime;
         _logger = logger;
+        _errorReportingService = errorReportingService;
     }
 
     public void Log(LogLevel level, string message, Exception? exception = null, Dictionary<string, object>? properties = null)
@@ -45,6 +50,12 @@ public class LoggingService : ILoggingService
 
             // Store in localStorage asynchronously (fire and forget)
             _ = StoreLogEntryAsync(logEntry);
+
+            // Report errors and warnings to server (fire and forget, with rate limiting)
+            if ((level == LogLevel.Error || level == LogLevel.Warning) && _errorReportingService != null)
+            {
+                _ = _errorReportingService.ReportErrorAsync(logEntry);
+            }
         }
         catch (Exception ex)
         {

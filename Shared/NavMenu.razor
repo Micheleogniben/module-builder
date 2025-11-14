@@ -1,31 +1,8 @@
-@inject ILoggingService LoggingService
-@inject IErrorService ErrorService
-
 <nav>
     <ul class="nav-menu">
         <li>
             <NavLink href="/" Match="NavLinkMatch.All">Home</NavLink>
         </li>
-        <li>
-            <button class="nav-link-button" @onclick="DownloadLogs" title="Scarica log">
-                📥 Log
-            </button>
-        </li>
     </ul>
 </nav>
-
-@code {
-    private async Task DownloadLogs()
-    {
-        try
-        {
-            await LoggingService.DownloadLogsAsTxtAsync();
-            ErrorService.ShowSuccess("Log scaricati con successo!", "Download completato");
-        }
-        catch (Exception ex)
-        {
-            ErrorService.ShowError($"Errore durante il download dei log: {ex.Message}", "Errore di download");
-        }
-    }
-}
 

@@ -30,8 +30,9 @@ builder.Services.AddScoped<HttpClient>(sp =>
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IFormSubmissionService, FormSubmissionService>();
-builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+builder.Services.AddScoped<IErrorReportingService, ErrorReportingService>();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddSingleton<IErrorService, ErrorService>();
