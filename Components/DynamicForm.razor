@@ -7,7 +7,7 @@
 @inject ILoggingService LoggingService
 @inject IErrorService ErrorService
 
-<EditForm OnValidSubmit="@HandleSubmit">
+<EditForm EditContext="@editContext" OnValidSubmit="@HandleSubmit">
     
     @if (loading)
     {
@@ -86,6 +86,13 @@
     private string? generatedDocument;
     private bool isSubmitting = false;
     private bool showSuccessMessage = false;
+    private EditContext editContext = new(new Dictionary<string, object>());
+
+    protected override void OnInitialized()
+    {
+        // Initialize EditContext with formData
+        editContext = new EditContext(formData);
+    }
 
     protected override async Task OnInitializedAsync()
     {
