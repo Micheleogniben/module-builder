@@ -1,0 +1,235 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject IModuleService ModuleService
+@inject IDocumentService DocumentService
+@inject IFormSubmissionService FormSubmissionService
+@inject IJSRuntime JSRuntime
+
+<EditForm OnValidSubmit="@HandleSubmit">
+    
+    @if (loading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading form...</p>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="error-message">
+            <p>@errorMessage</p>
+        </div>
+    }
+    else if (moduleConfig == null)
+    {
+        <div class="error-message">
+            <p>Module not found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <h2 class="card-title">@moduleConfig.Title</h2>
+
+            @foreach (var question in moduleConfig.Questions)
+            {
+                <FormField 
+                    Question="@question"
+                    Value="@GetValue(question.FieldName)"
+                    ValueChanged="@(value => SetValue(question.FieldName, value))"
+                    IsInvalid="@(validationErrors.ContainsKey(question.FieldName))"
+                    ErrorMessage="@(validationErrors.GetValueOrDefault(question.FieldName))" />
+            }
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <text>Processing...</text>
+                    }
+                    else
+                    {
+                        <text>Generate Document</text>
+                    }
+                </button>
+                <a href="/" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(generatedDocument))
+        {
+            <DocumentPreview 
+                Content="@generatedDocument" 
+                ModuleId="@moduleConfig.ModuleId"
+                OnDownload="@HandleDownload" />
+        }
+
+        @if (showSuccessMessage)
+        {
+            <div class="success-message">
+                <p>Document generated successfully! You can download it below.</p>
+            </div>
+        }
+    }
+</EditForm>
+
+@code {
+    [Parameter] public string ModuleId { get; set; } = string.Empty;
+
+    private ModuleConfig? moduleConfig;
+    private Dictionary<string, object> formData = new();
+    private Dictionary<string, string> validationErrors = new();
+    private bool loading = true;
+    private string? errorMessage;
+    private string? generatedDocument;
+    private bool isSubmitting = false;
+    private bool showSuccessMessage = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadModule();
+    }
+
+    private async Task LoadModule()
+    {
+        try
+        {
+            loading = true;
+            moduleConfig = await ModuleService.LoadModuleAsync(ModuleId);
+            
+            if (moduleConfig == null)
+            {
+                errorMessage = $"Module '{ModuleId}' not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading module: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private string? GetValue(string fieldName)
+    {
+        if (formData.TryGetValue(fieldName, out var value))
+        {
+            return value?.ToString();
+        }
+        return null;
+    }
+
+    private void SetValue(string fieldName, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            formData.Remove(fieldName);
+        }
+        else
+        {
+            formData[fieldName] = value;
+        }
+        
+        // Clear validation error for this field
+        validationErrors.Remove(fieldName);
+    }
+
+    private async Task HandleSubmit()
+    {
+        validationErrors.Clear();
+        isSubmitting = true;
+        showSuccessMessage = false;
+
+        try
+        {
+            // Validate required fields
+            if (moduleConfig != null)
+            {
+                foreach (var question in moduleConfig.Questions)
+                {
+                    if (question.Required)
+                    {
+                        var value = GetValue(question.FieldName);
+                        if (string.IsNullOrWhiteSpace(value))
+                        {
+                            validationErrors[question.FieldName] = "This field is required.";
+                        }
+                    }
+
+                    // Email validation
+                    if (question.QuestionType.ToLower() == "email")
+                    {
+                        var value = GetValue(question.FieldName);
+                        if (!string.IsNullOrWhiteSpace(value) && !IsValidEmail(value))
+                        {
+                            validationErrors[question.FieldName] = "Please enter a valid email address.";
+                        }
+                    }
+                }
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                isSubmitting = false;
+                return;
+            }
+
+            // Load template and process it
+            if (moduleConfig != null)
+            {
+                var template = await DocumentService.LoadTemplateAsync(ModuleId);
+                if (template != null)
+                {
+                    generatedDocument = DocumentService.ProcessTemplate(template, formData);
+                    showSuccessMessage = true;
+                }
+                else
+                {
+                    errorMessage = "Template not found for this module.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error processing form: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleDownload()
+    {
+        if (!string.IsNullOrEmpty(generatedDocument) && moduleConfig != null)
+        {
+            try
+            {
+                var fileName = $"{moduleConfig.ModuleId}_{DateTime.Now:yyyyMMdd_HHmmss}.md";
+                await FormSubmissionService.DownloadDocumentAsync(
+                    generatedDocument, 
+                    fileName, 
+                    "text/markdown");
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error downloading document: {ex.Message}";
+            }
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+

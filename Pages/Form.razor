@@ -1,0 +1,10 @@
+@page "/form/{ModuleId}"
+
+<PageTitle>Form - Static Web Forms</PageTitle>
+
+<DynamicForm ModuleId="@ModuleId" />
+
+@code {
+    [Parameter] public string ModuleId { get; set; } = string.Empty;
+}
+

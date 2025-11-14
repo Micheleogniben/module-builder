@@ -1,0 +1,37 @@
+@inject IDocumentService DocumentService
+
+@if (!string.IsNullOrEmpty(Content))
+{
+    <div class="card">
+        <h2 class="card-title">Generated Document Preview</h2>
+        
+        <div class="document-preview">
+            <div class="document-preview-content">
+                @((MarkupString)htmlContent)
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" @onclick="OnDownload">
+                Download Document
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Content { get; set; } = string.Empty;
+    [Parameter] public string ModuleId { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnDownload { get; set; }
+
+    private string htmlContent = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Content))
+        {
+            htmlContent = DocumentService.MarkdownToHtml(Content);
+        }
+    }
+}
+

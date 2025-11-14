@@ -1,0 +1,55 @@
+@inject IModuleService ModuleService
+@inject NavigationManager Navigation
+
+@if (loading)
+{
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading modules...</p>
+    </div>
+}
+else if (errorMessage != null)
+{
+    <div class="error-message">
+        <p>@errorMessage</p>
+    </div>
+}
+else if (modules.Count == 0)
+{
+    <p>No modules available.</p>
+}
+else
+{
+    <div class="module-grid">
+        @foreach (var moduleId in modules)
+        {
+            <a href="/form/@moduleId" class="module-card">
+                <h3>@moduleId</h3>
+                <p>Click to start filling out this form</p>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<string> modules = new();
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            modules = await ModuleService.GetAvailableModulesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading modules: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}
+

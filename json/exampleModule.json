@@ -1,0 +1,57 @@
+{
+  "moduleId": "exampleModule",
+  "title": "Example Module",
+  "questions": [
+    {
+      "fieldName": "firstName",
+      "questionType": "text",
+      "questionText": "Enter your first name",
+      "required": true,
+      "placeholder": "John"
+    },
+    {
+      "fieldName": "lastName",
+      "questionType": "text",
+      "questionText": "Enter your last name",
+      "required": true,
+      "placeholder": "Doe"
+    },
+    {
+      "fieldName": "email",
+      "questionType": "email",
+      "questionText": "Enter your email address",
+      "required": true,
+      "placeholder": "john.doe@example.com",
+      "helpText": "We'll use this to send you the completed document"
+    },
+    {
+      "fieldName": "age",
+      "questionType": "number",
+      "questionText": "Enter your age",
+      "required": false,
+      "placeholder": "25"
+    },
+    {
+      "fieldName": "birthDate",
+      "questionType": "date",
+      "questionText": "Select your birth date",
+      "required": false
+    },
+    {
+      "fieldName": "preference",
+      "questionType": "choice",
+      "questionText": "Choose your preferred option",
+      "options": ["Option A", "Option B", "Option C"],
+      "required": false
+    },
+    {
+      "fieldName": "comments",
+      "questionType": "textarea",
+      "questionText": "Additional comments or notes",
+      "required": false,
+      "placeholder": "Enter any additional information here...",
+      "helpText": "This field is optional"
+    }
+  ]
+}
+

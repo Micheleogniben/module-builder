@@ -1,0 +1,126 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="form-group">
+    <label class="form-label">
+        @Question.QuestionText
+        @if (Question.Required)
+        {
+            <span class="required">*</span>
+        }
+    </label>
+
+    @switch (Question.QuestionType.ToLower())
+    {
+        case "text":
+            <InputText 
+                class="@GetCssClass()" 
+                @bind-Value="@Value" 
+                placeholder="@Question.Placeholder"
+                id="@Question.FieldName" />
+            break;
+
+        case "email":
+            <InputText 
+                type="email"
+                class="@GetCssClass()" 
+                @bind-Value="@Value" 
+                placeholder="@Question.Placeholder"
+                id="@Question.FieldName" />
+            break;
+
+        case "textarea":
+            <InputTextArea 
+                class="@GetCssClass()" 
+                @bind-Value="@Value" 
+                placeholder="@Question.Placeholder"
+                rows="4"
+                id="@Question.FieldName" />
+            break;
+
+        case "number":
+            <InputNumber 
+                class="@GetCssClass()" 
+                @bind-Value="@NumberValue" 
+                placeholder="@Question.Placeholder"
+                id="@Question.FieldName" />
+            break;
+
+        case "date":
+            <InputDate 
+                class="@GetCssClass()" 
+                @bind-Value="@DateValue" 
+                id="@Question.FieldName" />
+            break;
+
+        case "choice":
+            <div class="choice-group">
+                @if (Question.Options != null)
+                {
+                    @foreach (var option in Question.Options)
+                    {
+                        <div class="choice-option">
+                            <input 
+                                type="radio" 
+                                name="@Question.FieldName" 
+                                id="@($"{Question.FieldName}_{option}")"
+                                value="@option"
+                                checked="@(Value == option)"
+                                @onchange="@(() => Value = option)" />
+                            <label for="@($"{Question.FieldName}_{option}")">@option</label>
+                        </div>
+                    }
+                }
+            </div>
+            break;
+    }
+
+    @if (IsInvalid && !string.IsNullOrEmpty(ErrorMessage))
+    {
+        <span class="form-error">@ErrorMessage</span>
+    }
+
+    @if (!string.IsNullOrEmpty(Question.HelpText))
+    {
+        <span class="form-help">@Question.HelpText</span>
+    }
+</div>
+
+@code {
+    [Parameter] public Question Question { get; set; } = new();
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public bool IsInvalid { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+
+    private decimal? NumberValue
+    {
+        get => decimal.TryParse(Value, out var num) ? num : null;
+        set
+        {
+            Value = value?.ToString();
+            ValueChanged.InvokeAsync(Value);
+        }
+    }
+
+    private DateTime? DateValue
+    {
+        get => DateTime.TryParse(Value, out var date) ? date : null;
+        set
+        {
+            Value = value?.ToString("yyyy-MM-dd");
+            ValueChanged.InvokeAsync(Value);
+        }
+    }
+
+    private void OnValueChanged(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString();
+        ValueChanged.InvokeAsync(Value);
+    }
+
+    private string GetCssClass()
+    {
+        return IsInvalid ? "form-control invalid" : "form-control";
+    }
+}
+
