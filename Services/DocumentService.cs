@@ -8,11 +8,11 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class DocumentService : IDocumentService
 {
-    private readonly HttpClient _httpClient;
+    private readonly StaticFilesHttpClient _httpClient;
     private readonly ILogger<DocumentService> _logger;
     private readonly MarkdownPipeline _markdownPipeline;
 
-    public DocumentService(HttpClient httpClient, ILogger<DocumentService> logger)
+    public DocumentService(StaticFilesHttpClient httpClient, ILogger<DocumentService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;

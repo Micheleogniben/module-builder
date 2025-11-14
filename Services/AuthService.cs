@@ -10,8 +10,7 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class AuthService : IAuthService
 {
-    private readonly HttpClient _httpClient;
-    private readonly HttpClient _apiClient;
+    private readonly ApiHttpClient _apiClient;
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<AuthService> _logger;
     private readonly IConfigurationService _configService;
@@ -31,13 +30,11 @@ public class AuthService : IAuthService
     public event Action? AuthenticationStateChanged;
 
     public AuthService(
-        HttpClient httpClient,
-        HttpClient apiClient,
+        ApiHttpClient apiClient,
         IJSRuntime jsRuntime,
         ILogger<AuthService> logger,
         IConfigurationService configService)
     {
-        _httpClient = httpClient;
         _apiClient = apiClient;
         _jsRuntime = jsRuntime;
         _logger = logger;

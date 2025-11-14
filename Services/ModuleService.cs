@@ -9,10 +9,10 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class ModuleService : IModuleService
 {
-    private readonly HttpClient _httpClient;
+    private readonly StaticFilesHttpClient _httpClient;
     private readonly ILogger<ModuleService> _logger;
 
-    public ModuleService(HttpClient httpClient, ILogger<ModuleService> logger)
+    public ModuleService(StaticFilesHttpClient httpClient, ILogger<ModuleService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;

@@ -14,19 +14,14 @@ builder.Logging.AddFilter("System", LogLevel.Warning);
 builder.Logging.AddFilter("StaticWebForms", LogLevel.Debug);
 
 // Register services
-// HttpClient for static files (modules, templates)
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+// HttpClient for static files (modules, templates) - with BaseAddress
+builder.Services.AddScoped<StaticFilesHttpClient>(sp => 
+    new StaticFilesHttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-// HttpClient for API calls to Raspberry Pi
-// The API URL will be configured via appsettings.json or environment variable
-builder.Services.AddScoped<HttpClient>(sp =>
-{
-    var httpClient = new HttpClient();
-    // API URL will be set dynamically from configuration
-    // For now, it will be set in the services that use it
-    return httpClient;
-});
+// HttpClient for API calls to Raspberry Pi (without BaseAddress, will be set dynamically)
+builder.Services.AddScoped<ApiHttpClient>(sp => new ApiHttpClient());
 
+// Register services
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IFormSubmissionService, FormSubmissionService>();

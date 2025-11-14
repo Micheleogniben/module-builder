@@ -10,11 +10,11 @@ public class ConfigurationService : IConfigurationService
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<ConfigurationService> _logger;
-    private readonly HttpClient _httpClient;
+    private readonly StaticFilesHttpClient _httpClient;
     private string? _apiBaseUrl;
     private bool _loaded = false;
 
-    public ConfigurationService(IJSRuntime jsRuntime, ILogger<ConfigurationService> logger, HttpClient httpClient)
+    public ConfigurationService(IJSRuntime jsRuntime, ILogger<ConfigurationService> logger, StaticFilesHttpClient httpClient)
     {
         _jsRuntime = jsRuntime;
         _logger = logger;

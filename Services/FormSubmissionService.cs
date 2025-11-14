@@ -10,22 +10,27 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class FormSubmissionService : IFormSubmissionService
 {
-    private readonly HttpClient _httpClient;
+    private readonly ApiHttpClient _apiClient;
+    private readonly IConfigurationService _configService;
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<FormSubmissionService> _logger;
-    private readonly string? _apiBaseUrl;
+    private string? _apiBaseUrl;
 
     public FormSubmissionService(
-        HttpClient httpClient,
+        ApiHttpClient apiClient,
+        IConfigurationService configService,
         IJSRuntime jsRuntime,
         ILogger<FormSubmissionService> logger)
     {
-        _httpClient = httpClient;
+        _apiClient = apiClient;
+        _configService = configService;
         _jsRuntime = jsRuntime;
         _logger = logger;
-        // API URL will be configured when backend is set up
-        // For now, this is ready for future implementation
-        _apiBaseUrl = null;
+        _apiBaseUrl = _configService.GetApiBaseUrl();
+        if (!string.IsNullOrEmpty(_apiBaseUrl))
+        {
+            _apiClient.BaseAddress = new Uri(_apiBaseUrl);
+        }
     }
 
     public async Task<bool> SubmitFormAsync(FormSubmission submission)
@@ -50,8 +55,16 @@ public class FormSubmissionService : IFormSubmissionService
 
             _logger.LogDebug("Form submission payload size: {Size} bytes", json.Length);
 
+            var apiUrl = _apiBaseUrl ?? _apiClient.BaseAddress?.ToString() ?? "";
+            if (string.IsNullOrEmpty(apiUrl))
+            {
+                _logger.LogWarning("API base URL not configured. Submission will be skipped.");
+                return false;
+            }
+
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/submit", content);
+            var submitUrl = $"{apiUrl.TrimEnd('/')}/api/submit";
+            var response = await _apiClient.PostAsync(submitUrl, content);
 
             if (response.IsSuccessStatusCode)
             {

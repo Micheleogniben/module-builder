@@ -10,7 +10,7 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class ErrorReportingService : IErrorReportingService
 {
-    private readonly HttpClient _apiClient;
+    private readonly ApiHttpClient _apiClient;
     private readonly IConfigurationService _configService;
     private readonly ILogger<ErrorReportingService> _logger;
     private readonly ConcurrentQueue<LogEntry> _errorQueue = new();
@@ -21,7 +21,7 @@ public class ErrorReportingService : IErrorReportingService
     private string? _apiBaseUrl;
 
     public ErrorReportingService(
-        HttpClient apiClient,
+        ApiHttpClient apiClient,
         IConfigurationService configService,
         ILogger<ErrorReportingService> logger)
     {

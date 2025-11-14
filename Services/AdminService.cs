@@ -9,14 +9,14 @@ namespace StaticWebForms.Services;
 /// </summary>
 public class AdminService : IAdminService
 {
-    private readonly HttpClient _apiClient;
+    private readonly ApiHttpClient _apiClient;
     private readonly IAuthService _authService;
     private readonly ILogger<AdminService> _logger;
     private readonly IConfigurationService _configService;
     private string? _apiBaseUrl;
 
     public AdminService(
-        HttpClient apiClient,
+        ApiHttpClient apiClient,
         IAuthService authService,
         ILogger<AdminService> logger,
         IConfigurationService configService)
