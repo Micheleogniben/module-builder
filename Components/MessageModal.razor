@@ -1,0 +1,68 @@
+@inject IErrorService ErrorService
+@implements IDisposable
+
+@if (showModal && !string.IsNullOrEmpty(currentMessage.Message))
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-container" @onclick:stopPropagation="true">
+            <div class="modal-header @GetHeaderClass()">
+                <h3 class="modal-title">@currentMessage.Title</h3>
+                <button class="modal-close" @onclick="CloseModal" aria-label="Chiudi">×</button>
+            </div>
+            <div class="modal-body">
+                <p>@currentMessage.Message</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="CloseModal">OK</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showModal = false;
+    private MessageEventArgs currentMessage = new();
+
+    protected override void OnInitialized()
+    {
+        ErrorService.OnMessage += HandleMessage;
+    }
+
+    private void HandleMessage(MessageEventArgs message)
+    {
+        if (string.IsNullOrEmpty(message.Message))
+        {
+            showModal = false;
+        }
+        else
+        {
+            currentMessage = message;
+            showModal = true;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        ErrorService.CloseMessage();
+    }
+
+    private string GetHeaderClass()
+    {
+        return currentMessage.Type switch
+        {
+            MessageType.Error => "modal-header-error",
+            MessageType.Warning => "modal-header-warning",
+            MessageType.Success => "modal-header-success",
+            MessageType.Info => "modal-header-info",
+            _ => ""
+        };
+    }
+
+    public void Dispose()
+    {
+        ErrorService.OnMessage -= HandleMessage;
+    }
+}
+

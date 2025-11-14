@@ -40,13 +40,28 @@ public class FormSubmissionService : IFormSubmissionService
                 return false;
             }
 
+            _logger.LogInformation("Submitting form for module {ModuleId} with {AnswerCount} answers", 
+                submission.ModuleId, submission.Answers?.Count ?? 0);
+
             var json = JsonSerializer.Serialize(submission, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
+            _logger.LogDebug("Form submission payload size: {Size} bytes", json.Length);
+
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/submit", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Form submitted successfully for module {ModuleId}", submission.ModuleId);
+            }
+            else
+            {
+                _logger.LogWarning("Form submission failed with status {StatusCode} for module {ModuleId}", 
+                    response.StatusCode, submission.ModuleId);
+            }
 
             return response.IsSuccessStatusCode;
         }
@@ -61,12 +76,17 @@ public class FormSubmissionService : IFormSubmissionService
     {
         try
         {
+            _logger.LogDebug("Preparing download for file {FileName} ({ContentType}, {Size} bytes)", 
+                fileName, contentType, content.Length);
+
             // Convert content to base64 and trigger download via JavaScript
             var bytes = Encoding.UTF8.GetBytes(content);
             var base64 = Convert.ToBase64String(bytes);
             var dataUrl = $"data:{contentType};base64,{base64}";
 
             await _jsRuntime.InvokeVoidAsync("downloadFile", fileName, dataUrl);
+            
+            _logger.LogInformation("Download initiated for file {FileName}", fileName);
         }
         catch (Exception ex)
         {

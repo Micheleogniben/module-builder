@@ -3,6 +3,9 @@
 @inject IDocumentService DocumentService
 @inject IFormSubmissionService FormSubmissionService
 @inject IJSRuntime JSRuntime
+@inject ILogger<DynamicForm> Logger
+@inject ILoggingService LoggingService
+@inject IErrorService ErrorService
 
 <EditForm OnValidSubmit="@HandleSubmit">
     
@@ -94,16 +97,40 @@
         try
         {
             loading = true;
+            Logger.LogDebug("Loading module: {ModuleId}", ModuleId);
+            LoggingService.LogDebug("Loading module configuration", new Dictionary<string, object> { { "ModuleId", ModuleId } });
+            
             moduleConfig = await ModuleService.LoadModuleAsync(ModuleId);
             
             if (moduleConfig == null)
             {
                 errorMessage = $"Module '{ModuleId}' not found.";
+                Logger.LogWarning("Module not found: {ModuleId}", ModuleId);
+                LoggingService.LogWarning("Module not found", null, new Dictionary<string, object> { { "ModuleId", ModuleId } });
+                ErrorService.ShowError($"Il modulo '{ModuleId}' non è stato trovato.", "Modulo non trovato");
+            }
+            else
+            {
+                Logger.LogInformation("Module loaded successfully: {ModuleId} with {QuestionCount} questions", 
+                    ModuleId, moduleConfig.Questions?.Count ?? 0);
+                LoggingService.LogInformation("Module loaded successfully", new Dictionary<string, object> 
+                { 
+                    { "ModuleId", ModuleId },
+                    { "ModuleTitle", moduleConfig.Title ?? "" },
+                    { "QuestionCount", moduleConfig.Questions?.Count ?? 0 }
+                });
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Error loading module: {ex.Message}";
+            Logger.LogError(ex, "Error loading module: {ModuleId}", ModuleId);
+            LoggingService.LogError("Error loading module", ex, new Dictionary<string, object> 
+            { 
+                { "ModuleId", ModuleId },
+                { "ErrorMessage", ex.Message }
+            });
+            ErrorService.ShowError($"Si è verificato un errore nel caricamento del modulo: {ex.Message}", "Errore di caricamento");
         }
         finally
         {
@@ -143,6 +170,13 @@
 
         try
         {
+            Logger.LogInformation("Form submission started for module: {ModuleId}", ModuleId);
+            LoggingService.LogInformation("Form submission started", new Dictionary<string, object> 
+            { 
+                { "ModuleId", ModuleId },
+                { "FieldCount", formData.Count }
+            });
+
             // Validate required fields
             if (moduleConfig != null)
             {
@@ -154,6 +188,7 @@
                         if (string.IsNullOrWhiteSpace(value))
                         {
                             validationErrors[question.FieldName] = "This field is required.";
+                            Logger.LogDebug("Validation error: Required field {FieldName} is empty", question.FieldName);
                         }
                     }
 
@@ -164,6 +199,7 @@
                         if (!string.IsNullOrWhiteSpace(value) && !IsValidEmail(value))
                         {
                             validationErrors[question.FieldName] = "Please enter a valid email address.";
+                            Logger.LogDebug("Validation error: Invalid email format for field {FieldName}", question.FieldName);
                         }
                     }
                 }
@@ -171,6 +207,16 @@
 
             if (validationErrors.Count > 0)
             {
+                Logger.LogWarning("Form validation failed with {ErrorCount} errors for module: {ModuleId}", 
+                    validationErrors.Count, ModuleId);
+                LoggingService.LogWarning("Form validation failed", null, new Dictionary<string, object> 
+                { 
+                    { "ModuleId", ModuleId },
+                    { "ErrorCount", validationErrors.Count },
+                    { "Errors", string.Join(", ", validationErrors.Keys) }
+                });
+                var errorFields = string.Join(", ", validationErrors.Keys);
+                ErrorService.ShowWarning($"Per favore, compila correttamente i seguenti campi: {errorFields}", "Validazione fallita");
                 isSubmitting = false;
                 return;
             }
@@ -178,21 +224,41 @@
             // Load template and process it
             if (moduleConfig != null)
             {
+                Logger.LogDebug("Loading template for module: {ModuleId}", ModuleId);
                 var template = await DocumentService.LoadTemplateAsync(ModuleId);
                 if (template != null)
                 {
+                    Logger.LogDebug("Processing template for module: {ModuleId}", ModuleId);
                     generatedDocument = DocumentService.ProcessTemplate(template, formData);
                     showSuccessMessage = true;
+                    
+                    Logger.LogInformation("Document generated successfully for module: {ModuleId}", ModuleId);
+                    LoggingService.LogInformation("Document generated successfully", new Dictionary<string, object> 
+                    { 
+                        { "ModuleId", ModuleId },
+                        { "DocumentLength", generatedDocument?.Length ?? 0 }
+                    });
+                    ErrorService.ShowSuccess("Documento generato con successo! Puoi scaricarlo qui sotto.", "Documento generato");
                 }
                 else
                 {
                     errorMessage = "Template not found for this module.";
+                    Logger.LogWarning("Template not found for module: {ModuleId}", ModuleId);
+                    LoggingService.LogWarning("Template not found", null, new Dictionary<string, object> { { "ModuleId", ModuleId } });
+                    ErrorService.ShowError("Il template per questo modulo non è stato trovato.", "Template mancante");
                 }
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Error processing form: {ex.Message}";
+            Logger.LogError(ex, "Error processing form for module: {ModuleId}", ModuleId);
+            LoggingService.LogError("Error processing form", ex, new Dictionary<string, object> 
+            { 
+                { "ModuleId", ModuleId },
+                { "ErrorMessage", ex.Message }
+            });
+            ErrorService.ShowError($"Si è verificato un errore durante l'elaborazione del form: {ex.Message}", "Errore di elaborazione");
         }
         finally
         {
@@ -207,14 +273,31 @@
             try
             {
                 var fileName = $"{moduleConfig.ModuleId}_{DateTime.Now:yyyyMMdd_HHmmss}.md";
+                Logger.LogInformation("Downloading document: {FileName} for module: {ModuleId}", fileName, ModuleId);
+                LoggingService.LogInformation("Document download started", new Dictionary<string, object> 
+                { 
+                    { "ModuleId", ModuleId },
+                    { "FileName", fileName }
+                });
+                
                 await FormSubmissionService.DownloadDocumentAsync(
                     generatedDocument, 
                     fileName, 
                     "text/markdown");
+                
+                Logger.LogInformation("Document downloaded successfully: {FileName}", fileName);
+                LoggingService.LogInformation("Document downloaded successfully", new Dictionary<string, object> { { "FileName", fileName } });
             }
             catch (Exception ex)
             {
                 errorMessage = $"Error downloading document: {ex.Message}";
+                Logger.LogError(ex, "Error downloading document for module: {ModuleId}", ModuleId);
+                LoggingService.LogError("Error downloading document", ex, new Dictionary<string, object> 
+                { 
+                    { "ModuleId", ModuleId },
+                    { "ErrorMessage", ex.Message }
+                });
+                ErrorService.ShowError($"Si è verificato un errore durante il download del documento: {ex.Message}", "Errore di download");
             }
         }
     }

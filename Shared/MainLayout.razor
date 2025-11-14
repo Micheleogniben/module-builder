@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject IErrorService ErrorService
 
 <div class="page">
     <div class="header">
@@ -12,4 +14,13 @@
         @Body
     </main>
 </div>
+
+<MessageModal />
+
+@code {
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}
 

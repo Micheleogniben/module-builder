@@ -1,5 +1,8 @@
 @inject IModuleService ModuleService
 @inject NavigationManager Navigation
+@inject ILogger<ModuleSelector> Logger
+@inject ILoggingService LoggingService
+@inject IErrorService ErrorService
 
 @if (loading)
 {
@@ -23,7 +26,7 @@ else
     <div class="module-grid">
         @foreach (var moduleId in modules)
         {
-            <a href="/form/@moduleId" class="module-card">
+            <a href="/form/@moduleId" class="module-card" @onclick="() => OnModuleSelected(moduleId)">
                 <h3>@moduleId</h3>
                 <p>Click to start filling out this form</p>
             </a>
@@ -40,16 +43,38 @@ else
     {
         try
         {
+            Logger.LogDebug("Loading available modules");
+            LoggingService.LogDebug("Loading available modules");
+            
             modules = await ModuleService.GetAvailableModulesAsync();
+            
+            Logger.LogInformation("Loaded {Count} modules", modules.Count);
+            LoggingService.LogInformation("Modules loaded successfully", new Dictionary<string, object> 
+            { 
+                { "ModuleCount", modules.Count },
+                { "Modules", string.Join(", ", modules) }
+            });
         }
         catch (Exception ex)
         {
             errorMessage = $"Error loading modules: {ex.Message}";
+            Logger.LogError(ex, "Error loading modules");
+            LoggingService.LogError("Error loading modules", ex, new Dictionary<string, object> 
+            { 
+                { "ErrorMessage", ex.Message } 
+            });
+            ErrorService.ShowError($"Si è verificato un errore nel caricamento dei moduli: {ex.Message}", "Errore di caricamento");
         }
         finally
         {
             loading = false;
         }
+    }
+
+    private void OnModuleSelected(string moduleId)
+    {
+        Logger.LogInformation("User selected module: {ModuleId}", moduleId);
+        LoggingService.LogInformation("Module selected", new Dictionary<string, object> { { "ModuleId", moduleId } });
     }
 }
 

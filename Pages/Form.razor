@@ -1,4 +1,6 @@
 @page "/form/{ModuleId}"
+@inject ILogger<Form> Logger
+@inject ILoggingService LoggingService
 
 <PageTitle>Form - Static Web Forms</PageTitle>
 
@@ -6,5 +8,11 @@
 
 @code {
     [Parameter] public string ModuleId { get; set; } = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Form page initialized for module: {ModuleId}", ModuleId);
+        LoggingService.LogInformation("User accessed form page", new Dictionary<string, object> { { "ModuleId", ModuleId } });
+    }
 }
 

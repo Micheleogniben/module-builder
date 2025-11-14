@@ -1,5 +1,7 @@
 @page "/"
 @inject IModuleService ModuleService
+@inject ILogger<Index> Logger
+@inject ILoggingService LoggingService
 
 <PageTitle>Home - Static Web Forms</PageTitle>
 
@@ -7,4 +9,12 @@
 <p>Select a form module to get started:</p>
 
 <ModuleSelector />
+
+@code {
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Home page initialized");
+        LoggingService.LogInformation("User accessed home page");
+    }
+}
 
